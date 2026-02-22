@@ -11,6 +11,7 @@ class StreamManager: ObservableObject {
     private var restartTask: Task<Void, Never>?
     private var cameraIndex = 0
     private var micIndex = 0
+    private var includeAudio = true
 
     private let supportDir: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -21,9 +22,10 @@ class StreamManager: ObservableObject {
 
     // MARK: - Public
 
-    func start(cameraIndex: Int, micIndex: Int) {
+    func start(cameraIndex: Int, micIndex: Int, includeAudio: Bool) {
         self.cameraIndex = cameraIndex
         self.micIndex = micIndex
+        self.includeAudio = includeAudio
 
         guard prepareBinaries() else {
             statusMessage = "Error: could not prepare binaries"
@@ -51,6 +53,21 @@ class StreamManager: ObservableObject {
         isStreaming = false
         rtspURL = ""
         statusMessage = "Stopped"
+    }
+
+    deinit {
+        killStaleBinaries()
+    }
+
+    /// Kill any leftover ffmpeg/mediamtx processes by name.
+    func killStaleBinaries() {
+        for name in ["ffmpeg", "mediamtx"] {
+            let kill = Process()
+            kill.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+            kill.arguments = ["-x", name]
+            try? kill.run()
+            kill.waitUntilExit()
+        }
     }
 
     // MARK: - Private
@@ -98,21 +115,24 @@ class StreamManager: ObservableObject {
     private func startFFmpeg() {
         let proc = Process()
         proc.executableURL = supportDir.appendingPathComponent("ffmpeg")
-        proc.arguments = [
+        let input = includeAudio ? "\(cameraIndex):\(micIndex)" : "\(cameraIndex)"
+        var args = [
             "-hide_banner", "-loglevel", "error", "-nostats",
             "-f", "avfoundation",
             "-framerate", "30",
             "-video_size", "1280x720",
-            "-i", "\(cameraIndex):\(micIndex)",
+            "-i", input,
             "-c:v", "libx264",
             "-preset", "ultrafast",
             "-tune", "zerolatency",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-f", "rtsp",
-            "-rtsp_transport", "tcp",
-            "rtsp://localhost:8554/webcam"
         ]
+        if includeAudio {
+            args += ["-c:a", "aac", "-b:a", "128k"]
+        } else {
+            args += ["-an"]
+        }
+        args += ["-f", "rtsp", "-rtsp_transport", "tcp", "rtsp://localhost:8554/webcam"]
+        proc.arguments = args
         proc.standardOutput = FileHandle.nullDevice
         proc.standardError = FileHandle.nullDevice
         try? proc.run()

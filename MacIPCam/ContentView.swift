@@ -1,9 +1,27 @@
 import SwiftUI
 import AppKit
+import IOKit.pwr_mgt
 
 struct ContentView: View {
     @StateObject private var cameras = CameraManager()
-    @StateObject private var stream = StreamManager()
+    @ObservedObject var streamManager: StreamManager
+    @State private var sleepAssertionID: IOPMAssertionID = 0
+    @State private var preventSleep = true
+
+    private func setSleepPrevention(_ enabled: Bool) {
+        if enabled {
+            IOPMAssertionCreateWithName(
+                kIOPMAssertionTypeNoDisplaySleep as CFString,
+                IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                "Mac IP Cam streaming" as CFString,
+                &sleepAssertionID
+            )
+        } else {
+            IOPMAssertionRelease(sleepAssertionID)
+            sleepAssertionID = 0
+        }
+        preventSleep = enabled
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -21,47 +39,60 @@ struct ContentView: View {
                         ForEach(cameras.microphones.indices, id: \.self) { i in
                             Text(cameras.microphones[i].localizedName).tag(i)
                         }
+                        Text("No audio").tag(-1)
                     }
                 }
                 .padding(4)
             }
+
+            // ── Options ──────────────────────────────────────────────────
+            Toggle(isOn: Binding(
+                get: { preventSleep },
+                set: { setSleepPrevention($0) }
+            )) {
+                Label("Prevent sleep & screen saver", systemImage: preventSleep ? "moon.zzz.fill" : "moon.zzz")
+            }
+            .toggleStyle(.checkbox)
 
             // ── Stream control ──────────────────────────────────────────
             GroupBox("Stream") {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Circle()
-                            .fill(stream.isStreaming ? Color.green : Color.gray)
+                            .fill(streamManager.isStreaming ? Color.green : Color.gray)
                             .frame(width: 10, height: 10)
-                        Text(stream.statusMessage)
-                            .foregroundColor(stream.isStreaming ? .primary : .secondary)
+                        Text(streamManager.statusMessage)
+                            .foregroundColor(streamManager.isStreaming ? .primary : .secondary)
                     }
 
-                    Button(stream.isStreaming ? "Stop" : "Start") {
-                        if stream.isStreaming {
-                            stream.stop()
-                        } else {
-                            stream.start(
-                                cameraIndex: cameras.selectedCameraIndex,
-                                micIndex: cameras.selectedMicIndex
-                            )
+                    HStack {
+                        Button(streamManager.isStreaming ? "Stop" : "Start") {
+                            if streamManager.isStreaming {
+                                streamManager.stop()
+                            } else {
+                                streamManager.start(
+                                    cameraIndex: cameras.selectedCameraIndex,
+                                    micIndex: cameras.selectedMicIndex,
+                                    includeAudio: cameras.selectedMicIndex >= 0
+                                )
+                            }
                         }
+                        .buttonStyle(.borderedProminent)
+                        .tint(streamManager.isStreaming ? .red : .accentColor)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(stream.isStreaming ? .red : .accentColor)
 
-                    if stream.isStreaming {
+                    if streamManager.isStreaming {
                         Divider()
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("RTSP URL").font(.caption).foregroundColor(.secondary)
-                            Text(stream.rtspURL)
+                            Text(streamManager.rtspURL)
                                 .font(.system(.body, design: .monospaced))
                                 .textSelection(.enabled)
 
                             Button("Copy URL") {
                                 NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(stream.rtspURL, forType: .string)
+                                NSPasteboard.general.setString(streamManager.rtspURL, forType: .string)
                             }
                             .buttonStyle(.bordered)
                         }
@@ -72,9 +103,24 @@ struct ContentView: View {
         }
         .padding(20)
         .frame(minWidth: 380, idealWidth: 420)
+        .onAppear {
+            streamManager.killStaleBinaries()
+            // Activate assertion to match the default checked state
+            IOPMAssertionCreateWithName(
+                kIOPMAssertionTypeNoDisplaySleep as CFString,
+                IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                "Mac IP Cam streaming" as CFString,
+                &sleepAssertionID
+            )
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            if preventSleep { setSleepPrevention(false) }
+            streamManager.stop()
+            streamManager.killStaleBinaries()
+        }
     }
 }
 
 #Preview {
-    ContentView()
+    ContentView(streamManager: StreamManager())
 }
