@@ -7,11 +7,7 @@ struct MacIPCamApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(streamManager: streamManager)
-                .background(WindowAccessor { window in
-                    appDelegate.window = window
-                    window.delegate = appDelegate
-                })
+            ContentView(streamManager: streamManager, appDelegate: appDelegate)
         }
         .windowStyle(.titleBar)
         .windowResizability(.contentSize)
@@ -50,8 +46,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 }
 
 /// Gives access to the underlying NSWindow from SwiftUI.
+/// Fires onScreenLight only when the screenLight value actually changes.
 struct WindowAccessor: NSViewRepresentable {
     let callback: (NSWindow) -> Void
+    let onScreenLight: (NSWindow, Bool) -> Void
+    let screenLight: Bool
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
@@ -63,5 +62,19 @@ struct WindowAccessor: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    func updateNSView(_ nsView: NSView, context: Context) {
+        guard context.coordinator.lastScreenLight != screenLight else { return }
+        context.coordinator.lastScreenLight = screenLight
+        DispatchQueue.main.async {
+            if let window = nsView.window {
+                self.onScreenLight(window, self.screenLight)
+            }
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    class Coordinator {
+        var lastScreenLight: Bool? = nil
+    }
 }
