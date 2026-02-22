@@ -1,0 +1,18 @@
+# Minimal MediaMTX config for webcam streaming
+logLevel: info
+
+# Bind to all interfaces so LAN clients (iPhone, etc.) can connect
+rtspAddress: :8554
+
+# Allow any client to publish and read without authentication
+authInternalUsers:
+  - user: any
+    pass:
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+
+# Accept all paths
+paths:
+  all_others:
