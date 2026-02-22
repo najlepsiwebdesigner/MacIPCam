@@ -23,18 +23,19 @@ struct MacIPCamApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     weak var window: NSWindow?
+    private var userConfirmedQuit = false
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // Called by Cmd+Q — window is still open, safe to show alert
+        if userConfirmedQuit { return .terminateNow }
         return confirmQuit() ? .terminateNow : .terminateCancel
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        // Called when the red X is clicked — intercept before window closes
         if confirmQuit() {
+            userConfirmedQuit = true
             NSApplication.shared.terminate(nil)
         }
-        return false  // Never let the window close on its own
+        return false
     }
 
     private func confirmQuit() -> Bool {
