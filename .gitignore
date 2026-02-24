@@ -3,3 +3,7 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 .build/
+Mac IP Cam.app/
+ffmpeg-src/
+ffmpeg-lgpl-build/
+*.dmg
