@@ -12,7 +12,7 @@ My family visited my parents for the weekend and I realised I had no baby monito
 
 1. Select your camera and microphone
 2. Click **Start**
-3. Connect any RTSP client to the displayed URL:
+3. Connect any RTSP client (for example [VLC](https://www.videolan.org) for various platforms) to the displayed URL:
    ```
    rtsp://<your-mac-ip>:8554/webcam
    ```
