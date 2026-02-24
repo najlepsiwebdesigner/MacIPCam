@@ -1,8 +1,12 @@
 # Mac IP Cam
 
-Turns your Mac's built-in or external webcam into an RTSP stream on your local network. Any RTSP-capable client — VLC, ffplay, or a mobile IP camera app — can connect and watch the stream in real time.
+Turns your Mac's built-in or external webcam into a live **audio and video RTSP stream** on your local network. Any RTSP-capable client — VLC, ffplay, or a mobile IP camera app — can connect and watch the stream in real time.
 
-![Mac IP Cam](assets/app-window.png)
+<img src="assets/app-window.png" width="440" />
+
+## Story
+
+My family visited my parents for the weekend and I realised I had no baby monitor for our second child. The idea came up to use the Mac's webcam instead. The app worked great, but the room was dark — so I added the **screen light** feature: the Mac's display expands to fill the screen with a soft, adjustable warm or cool light, improving visibility in low light without any additional lamps. It worked perfectly as a makeshift baby cam.
 
 ## How it works
 
@@ -15,10 +19,10 @@ Turns your Mac's built-in or external webcam into an RTSP stream on your local n
 
 ## Features
 
-- Live H.264/AAC stream over RTSP on the local network
+- Live **video and audio** stream (H.264 + AAC) over RTSP on the local network
 - Camera and microphone selection
 - Optional audio — toggle microphone off for video-only stream
-- **Screen light** — expands the window fullscreen and fills it with adjustable warm/cool light, useful as a fill light when the Mac faces you
+- **Screen light** — expands the window fullscreen and fills it with adjustable warm/cool light, useful as a fill light in dark rooms
 - **Prevent sleep** — keeps the display and system awake while streaming
 
 ## Requirements
@@ -34,7 +38,7 @@ Download the latest DMG from the [Releases](../../releases) page, open it and dr
 
 Because the app is not notarized, macOS will block it on first launch:
 
-![Gatekeeper warning](assets/gatekeeper-warning.png)
+<img src="assets/gatekeeper-warning.png" width="300" />
 
 Click **Done**, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
 
