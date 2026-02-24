@@ -122,9 +122,8 @@ class StreamManager: ObservableObject {
             "-framerate", "30",
             "-video_size", "1280x720",
             "-i", input,
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-tune", "zerolatency",
+            "-c:v", "h264_videotoolbox",
+            "-realtime", "1",
         ]
         if includeAudio {
             args += ["-c:a", "aac", "-b:a", "128k"]
